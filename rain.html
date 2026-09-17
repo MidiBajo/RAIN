@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDIBAJO - Rain Piano Generative (iOS Weather Edition)</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1c2b36 0%, #0d1117 100%);
+            color: #f0f6fc;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(28, 36, 48, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 18px;
+            box-sizing: border-box;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        }
+        h2 {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            margin: 0 0 14px 0;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #8e9aaf;
+            margin: 10px 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        select, button {
+            background: rgba(40, 50, 65, 0.6);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 11px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(10px);
+        }
+        select:hover, button:hover {
+            background: rgba(60, 75, 95, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        button.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        .cloud-btn {
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            padding: 0;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cloud-btn.active {
+            background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(96, 165, 250, 0.5);
+        }
+        #cloudsRow {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+        }
+        canvas {
+            background: linear-gradient(to bottom, #1e3a8a, #0f172a);
+            border-radius: 12px;
+            width: 100%;
+            height: 125px;
+            display: block;
+            margin-top: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .control-box {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .control-box label {
+            font-size: 11px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            color: #94a3b8;
+        }
+        .control-box input[type=range] {
+            width: 100%;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+        .piano-roll {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 3px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .piano-roll button {
+            padding: 8px 0;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+        .piano-roll button.active {
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            color: #0f172a;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+        }
+        .mini-keyboard {
+            height: 48px;
+            background: rgba(10, 15, 25, 0.8);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .key {
+            position: absolute;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+        }
+        .key.white {
+            background: #f1f5f9;
+            top: 0;
+            height: 100%;
+            border-radius: 0 0 3px 3px;
+            z-index: 1;
+        }
+        .key.white.pressed {
+            background: #ef4444 !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .key.black {
+            background: #1e293b;
+            top: 0;
+            height: 58%;
+            border-radius: 0 0 3px 3px;
+            z-index: 2;
+        }
+        .key.black.pressed {
+            background: #ef4444 !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>PIANOFORTE SOTTO LA PIOGGIA</h2>
+
+    <!-- Porte MIDI con tasto di aggiornamento -->
+    <div class="row" style="align-items: center;">
+        <select id="midiInSelect" style="flex: 3;"><option value="">MIDI In: NESSUNO</option></select>
+        <select id="midiOutSelect" style="flex: 3;"><option value="">MIDI Out: NESSUNO</option></select>
+        <button id="refreshMidiBtn" style="flex: 1; padding: 8px 4px;" title="Aggiorna porte MIDI">🔄</button>
+    </div>
+
+    <!-- BPM Control -->
+    <div class="control-box">
+        <label id="bpmLabel">BPM: 120</label>
+        <input type="range" id="bpmRange" min="40" max="180" value="120">
+    </div>
+
+    <!-- Intensità Pioggia Control -->
+    <div class="control-box" style="border-color: rgba(59, 130, 246, 0.3);">
+        <label id="rainLabel">METEO: Sereno (Spento)</label>
+        <input type="range" id="rainRange" min="0" max="40" value="0">
+    </div>
+
+    <!-- Filtro Ottave (Nuvole) -->
+    <div class="section-label">Filtro Ottave (Nuvole):</div>
+    <div class="row" id="cloudsRow"></div>
+
+    <!-- Canvas Pioggia -->
+    <canvas id="rainCanvas" width="390" height="125"></canvas>
+
+    <!-- Tastiera visiva di anteprima -->
+    <div class="mini-keyboard" id="miniKeyboard"></div>
+
+    <!-- Filtro Note (Piano Roll) -->
+    <div class="section-label" style="margin-top:10px;">Filtro Note (Piano Roll):</div>
+    <div class="piano-roll" id="pianoRollContainer"></div>
+
+    <!-- Parametri & Effetti -->
+    <div class="section-label" style="margin-top:10px;">Parametri & Effetti:</div>
+    <div class="row">
+        <button id="chk_vel" class="active">VEL</button>
+        <button id="chk_gate" class="active">GATE</button>
+        <button id="chk_bpm" class="active">BPM</button>
+        <button id="chk_mod" class="active">MOD</button>
+        <button id="chk_space">SPACE</button>
+        <button id="chk_hail">HAIL</button>
+    </div>
+</div>
+
+<script>
+    let appState = {
+        bpm: 120,
+        rainIntensity: 0,
+        octaves: [true, true, true, true, true, true, true],
+        notes: [true, true, true, true, true, true, true, true, true, true, true, true],
+        activeNotes: new Set(),
+        midiAccess: null,
+        selectedInput: null,
+        selectedOutput: null
+    };
+
+    const notaMin = 24; 
+    const notaMax = 108; 
+    const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+    function getWhiteKeysLayout() {
+        let tastiBianchi = [];
+        for (let n = notaMin; n <= notaMax; n++) {
+            if ([0, 2, 4, 5, 7, 9, 11].includes(n % 12)) tastiBianchi.push(n);
+        }
+        return tastiBianchi;
+    }
+
+    // Posizione X lineare naturale (Bassi a sinistra, Acuti a destra)
+    function getXPositionForNote(nota) {
+        let tastiBianchi = getWhiteKeysLayout();
+        let canvasWidth = canvas.width;
+        let wB = canvasWidth / tastiBianchi.length;
+        let semitone = nota % 12;
+        let isWhite = [0, 2, 4, 5, 7, 9, 11].includes(semitone);
+
+        let index = tastiBianchi.indexOf(isWhite ? nota : nota - 1);
+        if (index === -1) return canvasWidth / 2;
+
+        if (isWhite) {
+            return (index * wB) + (wB / 2);
+        } else {
+            return ((index + 1) * wB) - (wB * 0.3);
+        }
+    }
+
+    const octContainer = document.getElementById('cloudsRow');
+    appState.octaves.forEach((active, i) => {
+        let btn = document.createElement('button');
+        btn.className = `cloud-btn ${active ? 'active' : ''}`;
+        btn.textContent = `☁️${i}`;
+        btn.onclick = () => {
+            appState.octaves[i] = !appState.octaves[i];
+            btn.classList.toggle('active', appState.octaves[i]);
+        };
+        octContainer.appendChild(btn);
+    });
+
+    const rollContainer = document.getElementById('pianoRollContainer');
+    appState.notes.forEach((active, i) => {
+        let btn = document.createElement('button');
+        btn.className = active ? 'active' : '';
+        btn.textContent = noteNames[i];
+        btn.onclick = () => {
+            appState.notes[i] = !appState.notes[i];
+            btn.classList.toggle('active', appState.notes[i]);
+        };
+        rollContainer.appendChild(btn);
+    });
+
+    ['chk_vel', 'chk_gate', 'chk_bpm', 'chk_mod', 'chk_space', 'chk_hail'].forEach(id => {
+        let btn = document.getElementById(id);
+        btn.onclick = () => btn.classList.toggle('active');
+    });
+
+    const bpmRange = document.getElementById('bpmRange');
+    const bpmLabel = document.getElementById('bpmLabel');
+    bpmRange.oninput = (e) => {
+        appState.bpm = parseInt(e.target.value);
+        bpmLabel.textContent = `BPM: ${appState.bpm}`;
+    };
+
+    const rainRange = document.getElementById('rainRange');
+    const rainLabel = document.getElementById('rainLabel');
+    rainRange.oninput = (e) => {
+        appState.rainIntensity = parseInt(e.target.value);
+        let val = appState.rainIntensity;
+        let desc = "Sereno (Spento)";
+        if (val > 0 && val <= 5) desc = "Pioggerella leggera 🌦️";
+        else if (val > 5 && val <= 15) desc = "Pioggia moderata 🌧️";
+        else if (val > 15 && val <= 28) desc = "Pioggia battente 🌧️⚡";
+        else if (val > 28) desc = "Nubifragio / Grandine ⛈️";
+        rainLabel.textContent = `METEO: ${val} - ${desc}`;
+        if (val === 0) { gocce = []; increspature = []; }
+    };
+
+    function updateMidiPorts() {
+        const inSelect = document.getElementById('midiInSelect');
+        const outSelect = document.getElementById('midiOutSelect');
+        
+        inSelect.innerHTML = '<option value="">MIDI In: ASCOLTO AUTOMATICO (TUTTI)</option>';
+        outSelect.innerHTML = '<option value="">MIDI Out: NESSUNO</option>';
+
+        if (!appState.midiAccess) return;
+
+        // METODO AUTOMATICO: Aggancia TUTTI gli input MIDI disponibili contemporaneamente
+        appState.midiAccess.inputs.forEach(input => {
+            input.onmidimessage = handleMidiMessage;
+        });
+
+        appState.midiAccess.outputs.forEach(output => {
+            let opt = document.createElement('option');
+            opt.value = output.id;
+            opt.textContent = `Out: ${output.name}`;
+            outSelect.appendChild(opt);
+        });
+
+        outSelect.onchange = (e) => {
+            appState.selectedOutput = appState.midiAccess.outputs.get(e.target.value);
+        };
+    }
+
+    // Inizializzazione MIDI con Sysex (fondamentale per dispositivi Bluetooth/Speciali)
+    if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess({ sysex: true }).then(midiAccess => {
+            appState.midiAccess = midiAccess;
+            updateMidiPorts();
+            midiAccess.onstatechange = updateMidiPorts;
+        }, () => {});
+    }
+
+    // Pulsante manuale per aggiornare l'elenco porte (es. dopo aver avviato MIDIberry)
+    document.getElementById('refreshMidiBtn').onclick = () => {
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess({ sysex: true }).then(midiAccess => {
+                appState.midiAccess = midiAccess;
+                updateMidiPorts();
+                alert("Porte MIDI aggiornate!");
+            }, () => {
+                alert("Impossibile accedere alle porte MIDI.");
+            });
+        }
+    };
+
+    function sendMidiMessage(status, data1, data2) {
+        if (appState.selectedOutput) {
+            try { appState.selectedOutput.send([status, data1, data2]); } catch (err) {}
+        }
+    }
+
+    function handleMidiMessage(event) {
+        const [status, data1, data2] = event.data;
+        sendMidiMessage(status, data1, data2);
+        const command = status & 0xf0;
+        const note = data1;
+        const velocity = data2;
+
+        if (command === 0x90 && velocity > 0) appState.activeNotes.add(note);
+        else if (command === 0x80 || (command === 0x90 && velocity === 0)) appState.activeNotes.delete(note);
+        drawKeyboard();
+    }
+
+    const canvas = document.getElementById('rainCanvas');
+    const ctx = canvas.getContext('2d');
+    let gocce = [];
+    let increspature = [];
+
+    function generaNotaValida() {
+        let opzOttave = appState.octaves.map((v, i) => v ? i : null).filter(v => v !== null);
+        let opzNote = appState.notes.map((v, i) => v ? i : null).filter(v => v !== null);
+        if (opzOttave.length === 0 || opzNote.length === 0) return null;
+
+        let ottava = opzOttave[Math.floor(Math.random() * opzOttave.length)];
+        let notaOffset = opzNote[Math.floor(Math.random() * opzNote.length)];
+        let nota = 24 + (ottava * 12) + notaOffset;
+        if (nota > notaMax) return null;
+        return nota;
+    }
+
+    let ultimoTempoGenerazione = 0;
+    function loopGenerativo(timestamp) {
+        if (appState.rainIntensity > 0) {
+            let intervalloMs = (60000 / (appState.bpm * Math.max(appState.rainIntensity * 0.15, 0.2))) * Math.random();
+            if (timestamp - ultimoTempoGenerazione > Math.max(25, intervalloMs)) {
+                ultimoTempoGenerazione = timestamp;
+                let nota = generaNotaValida();
+                if (nota !== null) {
+                    let xPos = getXPositionForNote(nota) + (Math.random() * 4 - 2);
+                    let eGrandine = document.getElementById('chk_hail').classList.contains('active') && appState.rainIntensity >= 28 && Math.random() < 0.4;
+                    
+                    gocce.push({
+                        x: xPos, y: -10,
+                        targetY: canvas.height - Math.floor(Math.random() * 20 + 10),
+                        velocita: eGrandine ? 11 : 7.5,
+                        lunghezza: eGrandine ? 16 : 18,
+                        nota: nota,
+                        velocity: document.getElementById('chk_vel').classList.contains('active') ? Math.floor(Math.random() * 50 + 20) : 35,
+                        durata: Math.random() * 220 + 100,
+                        eGrandine: eGrandine
+                    });
+                }
+            }
+        }
+        aggiornaDisegnaCanvas();
+        requestAnimationFrame(loopGenerativo);
+    }
+
+    function aggiornaDisegnaCanvas() {
+        let inten = appState.rainIntensity;
+        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (inten === 0) { grad.addColorStop(0, "#38bdf8"); grad.addColorStop(1, "#0284c7"); }
+        else if (inten <= 10) { grad.addColorStop(0, "#475569"); grad.addColorStop(1, "#1e293b"); }
+        else if (inten <= 25) { grad.addColorStop(0, "#334155"); grad.addColorStop(1, "#0f172a"); }
+        else { grad.addColorStop(0, "#1e1b4b"); grad.addColorStop(1, "#020617"); }
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.beginPath();
+        ctx.arc(60, 20, 18, 0, Math.PI * 2); ctx.arc(80, 15, 22, 0, Math.PI * 2); ctx.arc(105, 22, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(280, 25, 20, 0, Math.PI * 2); ctx.arc(305, 18, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (let i = gocce.length - 1; i >= 0; i--) {
+            let g = gocce[i];
+            g.y += g.velocita;
+            ctx.strokeStyle = g.eGrandine ? "rgba(254, 240, 138, 0.9)" : "rgba(186, 230, 253, 0.8)";
+            ctx.lineWidth = g.eGrandine ? 2.5 : 1.5;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(g.x, g.y);
+            ctx.lineTo(g.x, g.y + g.lunghezza);
+            ctx.stroke();
+
+            if (g.y >= g.targetY) {
+                increspature.push({ x: g.x, y: g.targetY, r: 2, maxR: g.eGrandine ? 24 : 15, alpha: 0.85 });
+                suonaNotaGenerata(g.nota, g.velocity, g.durata);
+                gocce.splice(i, 1);
+            }
+        }
+
+        for (let i = increspature.length - 1; i >= 0; i--) {
+            let inc = increspature[i];
+            inc.r += 1.0;
+            inc.alpha -= 0.04;
+            if (inc.alpha <= 0 || inc.r >= inc.maxR) {
+                increspature.splice(i, 1);
+            } else {
+                ctx.strokeStyle = `rgba(186, 230, 253, ${inc.alpha})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(inc.x, inc.y, inc.r, inc.r * 0.4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    }
+
+    function suonaNotaGenerata(nota, velocity, durataMs) {
+        appState.activeNotes.add(nota);
+        sendMidiMessage(0x90, nota, velocity);
+        drawKeyboard();
+        setTimeout(() => {
+            appState.activeNotes.delete(nota);
+            sendMidiMessage(0x80, nota, 127);
+            drawKeyboard();
+        }, durataMs);
+    }
+
+    const miniKeyboard = document.getElementById('miniKeyboard');
+    function drawKeyboard() {
+        miniKeyboard.innerHTML = '';
+        let tastiBianchi = getWhiteKeysLayout();
+        let wB = miniKeyboard.clientWidth / tastiBianchi.length;
+
+        tastiBianchi.forEach((n, i) => {
+            let key = document.createElement('div');
+            key.className = `key white ${appState.activeNotes.has(n) ? 'pressed' : ''}`;
+            key.style.left = `${i * wB}px`;
+            key.style.width = `${wB}px`;
+            miniKeyboard.appendChild(key);
+
+            let semitone = n % 12;
+            if ([0, 2, 5, 7, 9].includes(semitone)) {
+                let prossimoTasto = n + 1;
+                if (prossimoTasto <= notaMax) {
+                    let keyB = document.createElement('div');
+                    keyB.className = `key black ${appState.activeNotes.has(prossimoTasto) ? 'pressed' : ''}`;
+                    keyB.style.left = `${(i + 1) * wB - (wB * 0.35)}px`;
+                    keyB.style.width = `${wB * 0.7}px`;
+                    miniKeyboard.appendChild(keyB);
+                }
+            }
+        });
+    }
+
+    window.onresize = drawKeyboard;
+    drawKeyboard();
+    requestAnimationFrame(loopGenerativo);
+</script>
+
+</body>
+</html>
